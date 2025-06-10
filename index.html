@@ -4,24 +4,34 @@
 <meta charset="UTF-8" />
 <title>Загрузка локального HTML</title>
 <style>
-  body { font-family: Arial, sans-serif; padding: 20px; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    font-family: Arial, sans-serif;
+    background: #fff;
+    overflow: hidden;
+  }
+  #mainPage {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+  }
   #dropzone {
     border: 2px dashed #666;
     padding: 40px;
     text-align: center;
     color: #666;
     user-select: none;
+    width: 90%;
+    max-width: 500px;
     margin-bottom: 10px;
   }
   #dropzone.hover {
     border-color: #3A8DFF;
     color: #3A8DFF;
-  }
-  iframe {
-    width: 100%;
-    height: 80vh;
-    border: none;
-    margin-top: 20px;
   }
   #fileInput {
     display: none;
@@ -33,27 +43,72 @@
     cursor: pointer;
     border-radius: 5px;
     user-select: none;
+    margin-bottom: 10px;
+    font-size: 18px;
   }
   label:hover {
+    background-color: #005fcc;
+  }
+  #frameContainer {
+    display: none;
+    height: 100%;
+    width: 100%;
+    position: relative;
+  }
+  #frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  #backBtn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    background-color: #3A8DFF;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  #backBtn:hover {
     background-color: #005fcc;
   }
 </style>
 </head>
 <body>
 
-<h1>Загрузить локальный HTML-файл</h1>
+<div id="mainPage">
+  <label for="fileInput">Выбрать файл</label>
+  <input type="file" id="fileInput" accept=".html,text/html" />
+  <div id="dropzone">Или перетащи файл сюда / Вставь Ctrl+V</div>
+</div>
 
-<label for="fileInput">Выбрать файл</label>
-<input type="file" id="fileInput" accept=".html,text/html" />
-
-<div id="dropzone">Или перетащи файл сюда / Вставь Ctrl+V</div>
-
-<iframe id="frame"></iframe>
+<div id="frameContainer">
+  <button id="backBtn">← Назад</button>
+  <iframe id="frame"></iframe>
+</div>
 
 <script>
   const dropzone = document.getElementById('dropzone');
   const frame = document.getElementById('frame');
   const fileInput = document.getElementById('fileInput');
+  const mainPage = document.getElementById('mainPage');
+  const frameContainer = document.getElementById('frameContainer');
+  const backBtn = document.getElementById('backBtn');
+
+  function showMain() {
+    frameContainer.style.display = 'none';
+    mainPage.style.display = 'flex';
+    frame.src = 'about:blank';
+  }
+
+  function showFrame() {
+    mainPage.style.display = 'none';
+    frameContainer.style.display = 'block';
+  }
 
   function handleFile(file) {
     if (!file.type.includes('html') && !file.name.endsWith('.html')) {
@@ -66,19 +121,17 @@
       const blob = new Blob([html], {type: 'text/html'});
       const url = URL.createObjectURL(blob);
       frame.src = url;
-      dropzone.textContent = `Загружен файл: ${file.name}`;
+      showFrame();
     };
     reader.readAsText(file);
   }
 
-  // Обработка выбора файла кнопкой
   fileInput.addEventListener('change', () => {
     if (fileInput.files.length) {
       handleFile(fileInput.files[0]);
     }
   });
 
-  // Drag & drop
   dropzone.addEventListener('dragover', e => {
     e.preventDefault();
     dropzone.classList.add('hover');
@@ -95,7 +148,6 @@
     }
   });
 
-  // Paste (Ctrl+V)
   window.addEventListener('paste', e => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
@@ -108,6 +160,9 @@
       }
     }
   });
+
+  backBtn.addEventListener('click', showMain);
+
 </script>
 
 </body>
