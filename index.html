@@ -1,75 +1,82 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Загрузка HTML</title>
-  <style>
-    html, body {
-      margin: 0; padding: 0; height: 100%; width: 100%;
-      font-family: Arial, sans-serif;
-      background: #fff;
-      overflow: hidden;
-    }
-    #mainPage {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      padding: 20px;
-      box-sizing: border-box;
-      align-items: center;
-      justify-content: center;
-    }
-    #dropzone {
-      border: 2px dashed #666;
-      padding: 40px;
-      text-align: center;
-      color: #666;
-      user-select: none;
-      width: 90%;
-      max-width: 500px;
-      margin-bottom: 10px;
-    }
-    label {
-      background-color: #3A8DFF;
-      color: white;
-      padding: 10px 20px;
-      cursor: pointer;
-      border-radius: 5px;
-      user-select: none;
-      margin-bottom: 10px;
-      font-size: 18px;
-    }
-    label:hover {
-      background-color: #005fcc;
-    }
-    #frameContainer {
-      display: none;
-      height: 100%;
-      width: 100%;
-      position: relative;
-    }
-    #frame {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-    #backBtn {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 10;
-      background-color: #3A8DFF;
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    #backBtn:hover {
-      background-color: #005fcc;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>Загрузка локального HTML</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    font-family: Arial, sans-serif;
+    background: #fff;
+    overflow: hidden;
+  }
+  #mainPage {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+  }
+  #dropzone {
+    border: 2px dashed #666;
+    padding: 40px;
+    text-align: center;
+    color: #666;
+    user-select: none;
+    width: 90%;
+    max-width: 500px;
+    margin-bottom: 10px;
+  }
+  #dropzone.hover {
+    border-color: #3A8DFF;
+    color: #3A8DFF;
+  }
+  #fileInput {
+    display: none;
+  }
+  label {
+    background-color: #3A8DFF;
+    color: white;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 5px;
+    user-select: none;
+    margin-bottom: 10px;
+    font-size: 18px;
+  }
+  label:hover {
+    background-color: #005fcc;
+  }
+  #frameContainer {
+    display: none;
+    height: 100%;
+    width: 100%;
+    position: relative;
+  }
+  #frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  #backBtn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    background-color: #3A8DFF;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  #backBtn:hover {
+    background-color: #005fcc;
+  }
+</style>
 </head>
 <body>
 
@@ -96,6 +103,10 @@
     frameContainer.style.display = 'none';
     mainPage.style.display = 'flex';
     frame.src = 'about:blank';
+    // Очистить URL параметр, чтобы не загружать снова
+    if (history.replaceState) {
+      history.replaceState(null, null, window.location.pathname);
+    }
   }
 
   function showFrame() {
@@ -119,7 +130,12 @@
     reader.readAsText(file);
   }
 
-  // Drag & Drop
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) {
+      handleFile(fileInput.files[0]);
+    }
+  });
+
   dropzone.addEventListener('dragover', e => {
     e.preventDefault();
     dropzone.classList.add('hover');
@@ -136,7 +152,6 @@
     }
   });
 
-  // Paste
   window.addEventListener('paste', e => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
@@ -150,21 +165,30 @@
     }
   });
 
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files.length) {
-      handleFile(fileInput.files[0]);
-    }
-  });
-
   backBtn.addEventListener('click', showMain);
 
-  // Загрузка по URL из ?url=
-  const params = new URLSearchParams(window.location.search);
-  const fileUrl = params.get('url');
-  if (fileUrl) {
-    frame.src = fileUrl;
-    showFrame();
+  // --- Загрузка из url-параметра 'url' (для telegram api) ---
+  async function loadTelegramHTMLFile() {
+    const params = new URLSearchParams(window.location.search);
+    const url = params.get('url');
+    if (!url) return;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Ошибка загрузки");
+      const html = await response.text();
+      const blob = new Blob([html], {type: 'text/html'});
+      const blobUrl = URL.createObjectURL(blob);
+
+      frame.src = blobUrl;
+      showFrame();
+    } catch (err) {
+      alert("Не удалось загрузить HTML-файл: " + err.message);
+    }
   }
+
+  loadTelegramHTMLFile();
+
 </script>
 
 </body>
