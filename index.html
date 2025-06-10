@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Загрузка локального HTML</title>
+  <title>Загрузка HTML</title>
   <style>
     html, body {
       margin: 0; padding: 0; height: 100%; width: 100%;
@@ -28,13 +28,6 @@
       width: 90%;
       max-width: 500px;
       margin-bottom: 10px;
-    }
-    #dropzone.hover {
-      border-color: #3A8DFF;
-      color: #3A8DFF;
-    }
-    #fileInput {
-      display: none;
     }
     label {
       background-color: #3A8DFF;
@@ -126,12 +119,7 @@
     reader.readAsText(file);
   }
 
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files.length) {
-      handleFile(fileInput.files[0]);
-    }
-  });
-
+  // Drag & Drop
   dropzone.addEventListener('dragover', e => {
     e.preventDefault();
     dropzone.classList.add('hover');
@@ -148,6 +136,7 @@
     }
   });
 
+  // Paste
   window.addEventListener('paste', e => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
@@ -161,76 +150,21 @@
     }
   });
 
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) {
+      handleFile(fileInput.files[0]);
+    }
+  });
+
   backBtn.addEventListener('click', showMain);
 
-  // Проверка URL-параметров
-  function getQueryParam(name) {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get(name);
-  }
-
-  const remoteURL = getQueryParam('url');
-  if (remoteURL) {
-    frame.src = remoteURL;
+  // Загрузка по URL из ?url=
+  const params = new URLSearchParams(window.location.search);
+  const fileUrl = params.get('url');
+  if (fileUrl) {
+    frame.src = fileUrl;
     showFrame();
   }
-
-</script>
-
-</body>
-</html>  function handleFile(file) {
-    if (!file.type.includes('html') && !file.name.endsWith('.html')) {
-      alert('Пожалуйста, загрузите HTML-файл');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = e => {
-      const html = e.target.result;
-      const blob = new Blob([html], {type: 'text/html'});
-      const url = URL.createObjectURL(blob);
-      frame.src = url;
-      showFrame();
-    };
-    reader.readAsText(file);
-  }
-
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files.length) {
-      handleFile(fileInput.files[0]);
-    }
-  });
-
-  dropzone.addEventListener('dragover', e => {
-    e.preventDefault();
-    dropzone.classList.add('hover');
-  });
-  dropzone.addEventListener('dragleave', e => {
-    e.preventDefault();
-    dropzone.classList.remove('hover');
-  });
-  dropzone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropzone.classList.remove('hover');
-    if (e.dataTransfer.files.length) {
-      handleFile(e.dataTransfer.files[0]);
-    }
-  });
-
-  window.addEventListener('paste', e => {
-    const items = e.clipboardData.items;
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.kind === 'file') {
-        const file = item.getAsFile();
-        handleFile(file);
-        e.preventDefault();
-        break;
-      }
-    }
-  });
-
-  backBtn.addEventListener('click', showMain);
-
 </script>
 
 </body>
