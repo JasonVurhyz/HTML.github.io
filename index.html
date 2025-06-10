@@ -1,47 +1,114 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Обёртка для внешнего HTML</title>
-  <style>
-    body, html {
-      margin: 0; padding: 0; height: 100%;
-      font-family: Arial, sans-serif;
-      display: flex; flex-direction: column; align-items: center;
-    }
-    h1 {
-      margin: 10px 0;
-    }
-    iframe {
-      flex-grow: 1;
-      width: 100%;
-      border: none;
-      min-height: 80vh;
-    }
-    .message {
-      margin: 20px;
-      color: #555;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>Загрузка локального HTML</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  #dropzone {
+    border: 2px dashed #666;
+    padding: 40px;
+    text-align: center;
+    color: #666;
+    user-select: none;
+    margin-bottom: 10px;
+  }
+  #dropzone.hover {
+    border-color: #3A8DFF;
+    color: #3A8DFF;
+  }
+  iframe {
+    width: 100%;
+    height: 80vh;
+    border: none;
+    margin-top: 20px;
+  }
+  #fileInput {
+    display: none;
+  }
+  label {
+    background-color: #3A8DFF;
+    color: white;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 5px;
+    user-select: none;
+  }
+  label:hover {
+    background-color: #005fcc;
+  }
+</style>
 </head>
 <body>
-  <h1>Обёртка для внешнего HTML</h1>
-  <div id="message" class="message"></div>
-  <iframe id="frame" src=""></iframe>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const fileUrl = params.get('file');
+<h1>Загрузить локальный HTML-файл</h1>
 
-    const messageEl = document.getElementById('message');
-    const iframeEl = document.getElementById('frame');
+<label for="fileInput">Выбрать файл</label>
+<input type="file" id="fileInput" accept=".html,text/html" />
 
-    if (fileUrl) {
-      messageEl.textContent = `Загружается файл: ${fileUrl}`;
-      iframeEl.src = fileUrl;
-    } else {
-      messageEl.textContent = 'Параметр "file" не указан в URL. Пример: ?file=https://example.com/file.html';
+<div id="dropzone">Или перетащи файл сюда / Вставь Ctrl+V</div>
+
+<iframe id="frame"></iframe>
+
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const frame = document.getElementById('frame');
+  const fileInput = document.getElementById('fileInput');
+
+  function handleFile(file) {
+    if (!file.type.includes('html') && !file.name.endsWith('.html')) {
+      alert('Пожалуйста, загрузите HTML-файл');
+      return;
     }
-  </script>
+    const reader = new FileReader();
+    reader.onload = e => {
+      const html = e.target.result;
+      const blob = new Blob([html], {type: 'text/html'});
+      const url = URL.createObjectURL(blob);
+      frame.src = url;
+      dropzone.textContent = `Загружен файл: ${file.name}`;
+    };
+    reader.readAsText(file);
+  }
+
+  // Обработка выбора файла кнопкой
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) {
+      handleFile(fileInput.files[0]);
+    }
+  });
+
+  // Drag & drop
+  dropzone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropzone.classList.add('hover');
+  });
+  dropzone.addEventListener('dragleave', e => {
+    e.preventDefault();
+    dropzone.classList.remove('hover');
+  });
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('hover');
+    if (e.dataTransfer.files.length) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  // Paste (Ctrl+V)
+  window.addEventListener('paste', e => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        handleFile(file);
+        e.preventDefault();
+        break;
+      }
+    }
+  });
+</script>
+
 </body>
 </html>
