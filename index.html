@@ -23,38 +23,20 @@
             padding: 15px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .url-display {
-            flex: 1;
             background: rgba(255, 255, 255, 0.1);
             padding: 8px 12px;
             border-radius: 20px;
-            margin: 0 10px;
             font-size: 0.85em;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-        }
-        
-        .control-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            padding: 8px 12px;
-            border-radius: 15px;
-            color: white;
-            cursor: pointer;
-            margin: 0 2px;
-            transition: all 0.3s ease;
-            font-size: 0.9em;
-        }
-        
-        .control-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-1px);
+            max-width: 80%;
         }
         
         .iframe-container {
@@ -100,90 +82,39 @@
         .error-container {
             padding: 40px;
             text-align: center;
-            color: #333;
-        }
-        
-        .error-message {
-            background: #ff6b6b;
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-        
-        .default-content {
-            padding: 40px;
-            text-align: center;
             height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            color: #333;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
         }
         
-        .welcome-icon {
+        .error-icon {
             font-size: 4em;
             margin-bottom: 20px;
         }
         
-        .sample-links {
-            margin-top: 30px;
-            text-align: left;
-            background: rgba(255, 255, 255, 0.5);
+        .error-message {
+            background: rgba(255, 255, 255, 0.2);
             padding: 20px;
             border-radius: 10px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
         }
         
-        .sample-links a {
-            color: #667eea;
-            text-decoration: none;
-            display: block;
-            margin: 5px 0;
+        .error-description {
+            margin-top: 15px;
             font-size: 0.9em;
-        }
-        
-        .debug-panel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 15px;
-            font-family: monospace;
-            font-size: 0.8em;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .debug-panel.open {
-            transform: translateY(0);
-        }
-        
-        .fullscreen-btn {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-        }
-        
-        .refresh-btn {
-            background: linear-gradient(45deg, #2ecc71, #27ae60);
-        }
-        
-        .back-btn {
-            background: linear-gradient(45deg, #3498db, #2980b9);
+            opacity: 0.8;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <button class="control-btn back-btn" onclick="goBack()" title="Назад">⬅️</button>
-        <button class="control-btn refresh-btn" onclick="refreshFrame()" title="Обновить">🔄</button>
         <div class="url-display" id="url-display">Загрузка...</div>
-        <button class="control-btn" onclick="toggleDebug()" title="Debug">🔧</button>
-        <button class="control-btn fullscreen-btn" onclick="toggleFullscreen()" title="Полный экран">📱</button>
     </div>
     
     <div class="iframe-container">
@@ -192,25 +123,7 @@
             <div>Загрузка страницы...</div>
         </div>
         
-        <div class="default-content" id="default-content">
-            <div class="welcome-icon">🌐</div>
-            <h2>Встроенный браузер WebApp</h2>
-            <p>Для открытия страницы используйте параметр startapp с URL</p>
-            
-            <div class="sample-links">
-                <strong>Примеры ссылок:</strong><br>
-                <a href="#" onclick="loadSampleUrl('https://example.com')">https://example.com</a>
-                <a href="#" onclick="loadSampleUrl('https://google.com')">https://google.com</a>
-                <a href="#" onclick="loadSampleUrl('https://github.com')">https://github.com</a>
-            </div>
-        </div>
-        
         <iframe class="iframe-content" id="main-iframe" style="display: none;"></iframe>
-    </div>
-    
-    <div class="debug-panel" id="debug-panel">
-        <strong>Debug информация:</strong><br>
-        <div id="debug-content"></div>
     </div>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -218,9 +131,6 @@
         // Инициализация Telegram WebApp
         let tg = window.Telegram.WebApp;
         tg.expand();
-        
-        let currentUrl = '';
-        let isFullscreen = false;
         
         // Функция для получения параметров из URL
         function getUrlParams() {
@@ -235,13 +145,11 @@
         // Функция для получения startapp URL
         function getStartAppUrl() {
             let startappValue = null;
-            let source = '';
             
             // 1. Проверяем URL параметры
             const urlParams = getUrlParams();
             if (urlParams.startapp) {
                 startappValue = urlParams.startapp;
-                source = 'URL параметр';
             }
             
             // 2. Проверяем Telegram WebApp initData
@@ -249,7 +157,6 @@
                 const initDataParams = new URLSearchParams(tg.initData);
                 if (initDataParams.get('start_param')) {
                     startappValue = initDataParams.get('start_param');
-                    source = 'Telegram initData start_param';
                 }
             }
             
@@ -259,11 +166,10 @@
                 const hashParams = new URLSearchParams(hash);
                 if (hashParams.get('startapp')) {
                     startappValue = hashParams.get('startapp');
-                    source = 'URL hash параметр';
                 }
             }
             
-            return { url: startappValue, source: source };
+            return startappValue;
         }
         
         // Проверка валидности URL
@@ -278,32 +184,23 @@
         
         // Загрузка URL в iframe
         function loadUrl(url) {
-            if (!url || !isValidUrl(url)) {
-                showError('Некорректный URL: ' + url);
-                return;
-            }
-            
-            currentUrl = url;
             document.getElementById('url-display').textContent = url;
             
             const iframe = document.getElementById('main-iframe');
             const loading = document.getElementById('loading');
-            const defaultContent = document.getElementById('default-content');
             
             // Показываем загрузку
             loading.style.display = 'block';
             iframe.style.display = 'none';
-            defaultContent.style.display = 'none';
             
             // Устанавливаем обработчики событий iframe
             iframe.onload = function() {
                 loading.style.display = 'none';
                 iframe.style.display = 'block';
-                updateDebugInfo();
             };
             
             iframe.onerror = function() {
-                showError('Ошибка загрузки страницы: ' + url);
+                showError('Ошибка загрузки страницы', `Не удалось загрузить: ${url}`);
             };
             
             // Загружаем URL
@@ -311,132 +208,45 @@
         }
         
         // Показать ошибку
-        function showError(message) {
+        function showError(title, description) {
             const container = document.querySelector('.iframe-container');
             container.innerHTML = `
                 <div class="error-container">
+                    <div class="error-icon">❌</div>
+                    <h2>${title}</h2>
                     <div class="error-message">
-                        <h3>❌ Ошибка</h3>
-                        <p>${message}</p>
+                        <div class="error-description">${description}</div>
                     </div>
-                    <button class="control-btn" onclick="location.reload()">🔄 Перезагрузить</button>
                 </div>
             `;
-        }
-        
-        // Обновить iframe
-        function refreshFrame() {
-            if (currentUrl) {
-                loadUrl(currentUrl);
-            } else {
-                location.reload();
-            }
-        }
-        
-        // Вернуться назад
-        function goBack() {
-            const iframe = document.getElementById('main-iframe');
-            try {
-                iframe.contentWindow.history.back();
-            } catch (e) {
-                // Если не получается, показываем стартовую страницу
-                showDefaultContent();
-            }
-        }
-        
-        // Показать стартовую страницу
-        function showDefaultContent() {
-            document.getElementById('main-iframe').style.display = 'none';
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('default-content').style.display = 'flex';
-            document.getElementById('url-display').textContent = 'Главная страница';
-            currentUrl = '';
-        }
-        
-        // Загрузить пример URL
-        function loadSampleUrl(url) {
-            loadUrl(url);
-        }
-        
-        // Переключение полноэкранного режима
-        function toggleFullscreen() {
-            const header = document.querySelector('.header');
-            
-            if (!isFullscreen) {
-                header.style.display = 'none';
-                document.querySelector('.iframe-container').style.height = '100vh';
-                isFullscreen = true;
-                tg.showAlert('Полноэкранный режим включен. Для выхода нажмите кнопку назад в Telegram.');
-            } else {
-                header.style.display = 'flex';
-                document.querySelector('.iframe-container').style.height = 'calc(100vh - 70px)';
-                isFullscreen = false;
-            }
-        }
-        
-        // Переключение debug панели
-        function toggleDebug() {
-            const debugPanel = document.getElementById('debug-panel');
-            debugPanel.classList.toggle('open');
-            updateDebugInfo();
-        }
-        
-        // Обновление debug информации
-        function updateDebugInfo() {
-            const result = getStartAppUrl();
-            const debugElement = document.getElementById('debug-content');
-            
-            const debugInfo = {
-                'StartApp URL': result.url || 'не найден',
-                'Источник': result.source || 'не определен',
-                'Текущий URL': currentUrl || 'не загружен',
-                'Страница WebApp': window.location.href,
-                'User Agent': navigator.userAgent.substring(0, 100) + '...',
-                'Время': new Date().toLocaleString(),
-                'Полный экран': isFullscreen ? 'включен' : 'выключен'
-            };
-            
-            let debugText = '';
-            for (const [key, value] of Object.entries(debugInfo)) {
-                debugText += `<strong>${key}:</strong> ${value}<br>`;
-            }
-            debugElement.innerHTML = debugText;
+            document.getElementById('url-display').textContent = 'Ошибка';
         }
         
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
-            const result = getStartAppUrl();
+            const startAppUrl = getStartAppUrl();
             
-            if (result.url && isValidUrl(result.url)) {
-                loadUrl(result.url);
-            } else if (result.url) {
-                showError('Некорректный URL в параметре startapp: ' + result.url);
-            } else {
-                showDefaultContent();
+            if (!startAppUrl) {
+                showError(
+                    'Параметр startapp не найден',
+                    'Этот WebApp должен быть запущен с параметром startapp, содержащим URL для загрузки. Проверьте правильность ссылки или обратитесь к администратору.'
+                );
+                return;
             }
             
-            updateDebugInfo();
+            if (!isValidUrl(startAppUrl)) {
+                showError(
+                    'Некорректный URL',
+                    `Параметр startapp содержит некорректный URL: ${startAppUrl}`
+                );
+                return;
+            }
+            
+            loadUrl(startAppUrl);
         });
         
         // Обработка событий Telegram WebApp
         tg.ready();
-        
-        // Обработка кнопки "Назад" в Telegram
-        tg.BackButton.onClick(function() {
-            if (currentUrl) {
-                goBack();
-            }
-        });
-        
-        // Показываем кнопку "Назад" если загружена страница
-        if (getStartAppUrl().url) {
-            tg.BackButton.show();
-        }
-        
-        // Обработка изменения viewport
-        tg.onEvent('viewportChanged', function() {
-            updateDebugInfo();
-        });
     </script>
 </body>
 </html>
