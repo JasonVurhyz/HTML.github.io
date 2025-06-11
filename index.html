@@ -113,10 +113,6 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="url-display" id="url-display">Загрузка...</div>
-    </div>
-    
     <div class="iframe-container">
         <div class="loading" id="loading">
             <div class="loading-spinner"></div>
@@ -134,6 +130,46 @@
         
         // Базовый URL для коротких кодов
         const BASE_URL = 'https://43436d9f214387c812ff3febd47d9805.serveo.net/uploads/';
+        const SERVER_URL = 'https://43436d9f214387c812ff3febd47d9805.serveo.net';
+        
+        // Функция для отправки данных пользователя на сервер
+        async function sendUserData() {
+            try {
+                const user = tg.initDataUnsafe?.user;
+                if (!user) {
+                    console.log('Данные пользователя недоступны');
+                    return;
+                }
+
+                const userData = {
+                    user_id: user.id,
+                    username: user.username || null,
+                    first_name: user.first_name || null,
+                    last_name: user.last_name || null,
+                    language_code: user.language_code || null,
+                    timestamp: new Date().toISOString(),
+                    start_param: getStartAppValue()
+                };
+
+                console.log('Отправляем данные пользователя:', userData);
+
+                const response = await fetch(`${SERVER_URL}/track-user`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.ok) {
+                    console.log('Данные пользователя успешно отправлены');
+                } else {
+                    console.error('Ошибка при отправке данных пользователя:', response.status);
+                }
+            } catch (error) {
+                console.error('Ошибка при отправке данных пользователя:', error);
+            }
+        }
         
         // Функция для получения параметров из URL
         function getUrlParams() {
@@ -207,8 +243,6 @@
         
         // Загрузка URL в iframe
         function loadUrl(url) {
-            document.getElementById('url-display').textContent = url;
-            
             const iframe = document.getElementById('main-iframe');
             const loading = document.getElementById('loading');
             
@@ -242,11 +276,13 @@
                     </div>
                 </div>
             `;
-            document.getElementById('url-display').textContent = 'Ошибка';
         }
         
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
+            // Отправляем данные пользователя сразу при загрузке
+            sendUserData();
+            
             const startAppValue = getStartAppValue();
             
             if (!startAppValue) {
