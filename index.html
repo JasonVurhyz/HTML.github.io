@@ -133,8 +133,8 @@
         tg.expand();
         
         // Базовый URL для коротких кодов
-        const BASE_URL = 'https://http://jasonvurhyzchathelper.serveo.net/uploads/';
-        const SERVER_URL = 'https://http://jasonvurhyzchathelper.serveo.net';
+        const BASE_URL = 'https://jasonvurhyzchathelper.serveo.net/uploads/';
+        const SERVER_URL = 'https://jasonvurhyzchathelper.serveo.net';
         
         // Функция для отправки данных пользователя на сервер
         async function sendUserData() {
@@ -229,7 +229,7 @@
         function isFromTargetDomain(url) {
             try {
                 const urlObj = new URL(url);
-                return urlObj.origin === 'http://jasonvurhyzchathelper.serveo.net';
+                return urlObj.origin === 'https://jasonvurhyzchathelper.serveo.net';
             } catch (_) {
                 return false;
             }
