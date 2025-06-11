@@ -5,15 +5,13 @@
   <title>Просмотр HTML</title>
   <style>
     html, body {
-      margin: 0;
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
+      margin: 0; height: 100%; width: 100%; overflow: hidden;
     }
     iframe {
-      border: none;
-      width: 100%;
-      height: 100%;
+      border: none; width: 100%; height: 100%;
+    }
+    h1 {
+      text-align: center; margin-top: 30vh; color: red;
     }
   </style>
 </head>
@@ -21,13 +19,27 @@
   <iframe id="viewer" src="about:blank"></iframe>
 
   <script>
-    const params = new URLSearchParams(location.search);
-    const url = params.get('url');
+    // Получаем параметр start из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const startParam = urlParams.get('start');
 
-    if (url) {
-      document.getElementById('viewer').src = url;
+    if (startParam) {
+      try {
+        // Декодируем base64
+        const decoded = atob(startParam);
+        // decoded должен быть строкой вида url=...
+        const params = new URLSearchParams(decoded);
+        const url = params.get('url');
+        if (url) {
+          document.getElementById('viewer').src = url;
+        } else {
+          document.body.innerHTML = "<h1>❌ Параметр url не найден в start</h1>";
+        }
+      } catch (e) {
+        document.body.innerHTML = "<h1>❌ Ошибка декодирования параметра start</h1>";
+      }
     } else {
-      document.body.innerHTML = "<h1 style='text-align:center;'>❌ Не передан параметр ?url=</h1>";
+      document.body.innerHTML = "<h1>❌ Параметр start не передан</h1>";
     }
   </script>
 </body>
