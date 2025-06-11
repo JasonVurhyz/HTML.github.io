@@ -110,6 +110,29 @@
             opacity: 0.8;
             line-height: 1.5;
         }
+
+        .code-resolver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #667eea;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .code-resolver .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
     </style>
 </head>
 <body>
@@ -121,6 +144,12 @@
         <div class="loading" id="loading">
             <div class="loading-spinner"></div>
             <div>Загрузка страницы...</div>
+        </div>
+
+        <div class="code-resolver" id="code-resolver" style="display: none;">
+            <div class="spinner"></div>
+            <div>Получение URL по коду...</div>
+            <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.7;" id="code-display"></div>
         </div>
         
         <iframe class="iframe-content" id="main-iframe" style="display: none;"></iframe>
@@ -142,8 +171,8 @@
             return params;
         }
         
-        // Функция для получения startapp URL
-        function getStartAppUrl() {
+        // Функция для получения startapp URL или кода
+        function getStartAppValue() {
             let startappValue = null;
             
             // 1. Проверяем URL параметры
@@ -181,9 +210,87 @@
                 return false;
             }
         }
+
+        // Проверка, является ли строка коротким кодом (6+ символов, только латиница и цифры)
+        function isShortCode(value) {
+            return /^[a-zA-Z0-9]{6,}$/.test(value) && !isValidUrl(value);
+        }
+
+        // Получение URL по короткому коду через бота
+        async function resolveShortCode(code) {
+            try {
+                // Показываем индикатор разрешения кода
+                showCodeResolver(code);
+                
+                // Отправляем данные боту через WebApp
+                if (tg.initData) {
+                    // Используем Telegram WebApp API для отправки данных боту
+                    const data = {
+                        action: 'resolve_code',
+                        code: code,
+                        timestamp: Date.now()
+                    };
+                    
+                    // Отправляем данные через sendData (если поддерживается)
+                    if (tg.sendData) {
+                        tg.sendData(JSON.stringify(data));
+                    }
+                    
+                    // Пытаемся получить ответ через событие
+                    return new Promise((resolve, reject) => {
+                        // Timeout через 10 секунд
+                        const timeout = setTimeout(() => {
+                            reject(new Error('Timeout при получении URL'));
+                        }, 10000);
+                        
+                        // Слушаем ответ от бота (если он поддерживается)
+                        if (tg.onEvent) {
+                            tg.onEvent('web_app_data_received', (data) => {
+                                clearTimeout(timeout);
+                                try {
+                                    const response = JSON.parse(data);
+                                    if (response.code === code && response.url) {
+                                        resolve(response.url);
+                                    } else {
+                                        reject(new Error('Код не найден'));
+                                    }
+                                } catch (e) {
+                                    reject(new Error('Ошибка обработки ответа'));
+                                }
+                            });
+                        } else {
+                            // Если WebApp API не поддерживает получение данных,
+                            // показываем инструкцию пользователю
+                            setTimeout(() => {
+                                clearTimeout(timeout);
+                                reject(new Error('unsupported'));
+                            }, 2000);
+                        }
+                    });
+                } else {
+                    throw new Error('WebApp не инициализирован');
+                }
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        // Показать индикатор разрешения кода
+        function showCodeResolver(code) {
+            document.getElementById('loading').style.display = 'none';
+            const resolver = document.getElementById('code-resolver');
+            document.getElementById('code-display').textContent = `Код: ${code}`;
+            resolver.style.display = 'block';
+        }
+
+        // Скрыть индикатор разрешения кода
+        function hideCodeResolver() {
+            document.getElementById('code-resolver').style.display = 'none';
+        }
         
         // Загрузка URL в iframe
         function loadUrl(url) {
+            hideCodeResolver();
             document.getElementById('url-display').textContent = url;
             
             const iframe = document.getElementById('main-iframe');
@@ -209,6 +316,7 @@
         
         // Показать ошибку
         function showError(title, description) {
+            hideCodeResolver();
             const container = document.querySelector('.iframe-container');
             container.innerHTML = `
                 <div class="error-container">
@@ -221,32 +329,99 @@
             `;
             document.getElementById('url-display').textContent = 'Ошибка';
         }
+
+        // Показать инструкцию для пользователя
+        function showCodeInstruction(code) {
+            hideCodeResolver();
+            const container = document.querySelector('.iframe-container');
+            container.innerHTML = `
+                <div class="error-container" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);">
+                    <div class="error-icon">🔑</div>
+                    <h2>Нужно получить URL по коду</h2>
+                    <div class="error-message">
+                        <div class="error-description">
+                            <strong>Код:</strong> ${code}<br><br>
+                            <strong>Инструкция:</strong><br>
+                            1. Отправьте код <code>${code}</code> боту в личном чате<br>
+                            2. Или используйте inline: <code>@VipIsitPuddle_bot ${code}</code><br>
+                            3. Нажмите полученную кнопку "🌐 Открыть в WebApp"
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('url-display').textContent = `Код: ${code}`;
+        }
         
         // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            const startAppUrl = getStartAppUrl();
+        document.addEventListener('DOMContentLoaded', async function() {
+            const startAppValue = getStartAppValue();
             
-            if (!startAppUrl) {
+            if (!startAppValue) {
                 showError(
                     'Параметр startapp не найден',
-                    'Этот WebApp должен быть запущен с параметром startapp, содержащим URL для загрузки. Проверьте правильность ссылки или обратитесь к администратору.'
+                    'Этот WebApp должен быть запущен с параметром startapp, содержащим URL или код для загрузки. Проверьте правильность ссылки или обратитесь к администратору.'
                 );
                 return;
             }
-            
-            if (!isValidUrl(startAppUrl)) {
-                showError(
-                    'Некорректный URL',
-                    `Параметр startapp содержит некорректный URL: ${startAppUrl}`
-                );
-                return;
+
+            // Проверяем, является ли значение URL или коротким кодом
+            if (isValidUrl(startAppValue)) {
+                // Это полный URL, загружаем сразу
+                loadUrl(startAppValue);
+            } else if (isShortCode(startAppValue)) {
+                // Это короткий код, пытаемся получить URL
+                try {
+                    const resolvedUrl = await resolveShortCode(startAppValue);
+                    if (resolvedUrl && isValidUrl(resolvedUrl)) {
+                        loadUrl(resolvedUrl);
+                    } else {
+                        showCodeInstruction(startAppValue);
+                    }
+                } catch (error) {
+                    if (error.message === 'unsupported') {
+                        // WebApp API не поддерживает получение данных
+                        showCodeInstruction(startAppValue);
+                    } else {
+                        showError(
+                            'Код не найден',
+                            `Короткий код "${startAppValue}" не найден или устарел. Получите новый код через бота.`
+                        );
+                    }
+                }
+            } else {
+                // Пытаемся интерпретировать как URL с добавлением https://
+                let possibleUrl = startAppValue;
+                if (!possibleUrl.startsWith(('http://', 'https://'))) {
+                    possibleUrl = 'https://' + possibleUrl;
+                }
+                
+                if (isValidUrl(possibleUrl)) {
+                    loadUrl(possibleUrl);
+                } else {
+                    showError(
+                        'Некорректный параметр',
+                        `Параметр startapp содержит некорректное значение: ${startAppValue}. Ожидается URL или короткий код.`
+                    );
+                }
             }
-            
-            loadUrl(startAppUrl);
         });
         
         // Обработка событий Telegram WebApp
         tg.ready();
+
+        // Дополнительная обработка для получения данных от бота
+        if (tg.onEvent) {
+            tg.onEvent('web_app_data_received', function(data) {
+                try {
+                    const response = JSON.parse(data);
+                    if (response.action === 'resolve_code' && response.url) {
+                        loadUrl(response.url);
+                    }
+                } catch (e) {
+                    console.error('Error processing bot response:', e);
+                }
+            });
+        }
     </script>
 </body>
 </html>
