@@ -1,32 +1,232 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Просмотр HTML</title>
-  <style>
-    html, body {
-      margin: 0; height: 100%; width: 100%; overflow: hidden;
-    }
-    iframe {
-      border: none; width: 100%; height: 100%;
-    }
-    h1 {
-      text-align: center; margin-top: 30vh; color: red;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram WebApp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .startapp-value {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 20px 0;
+            word-break: break-all;
+        }
+        
+        .info {
+            margin-top: 30px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .debug {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            text-align: left;
+            font-family: monospace;
+        }
+        
+        .button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+    </style>
 </head>
 <body>
-  <iframe id="viewer" src="about:blank"></iframe>
+    <div class="container">
+        <h1>🚀 WebApp</h1>
+        
+        <div id="startapp-display">
+            <div class="startapp-value" id="startapp-value">
+                Загрузка...
+            </div>
+        </div>
+        
+        <div class="info">
+            <p>Этот параметр был передан через startapp</p>
+        </div>
+        
+        <button class="button" onclick="copyToClipboard()">📋 Копировать значение</button>
+        <button class="button" onclick="toggleDebug()">🔧 Debug</button>
+        
+        <div class="debug" id="debug-info" style="display: none;">
+            <strong>Debug информация:</strong><br>
+            <span id="debug-content"></span>
+        </div>
+    </div>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const url = params.get('url');
-
-    if (url) {
-      document.getElementById('viewer').src = url;
-    } else {
-      document.body.innerHTML = "<h1>❌ Параметр url не передан</h1>";
-    }
-  </script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        // Инициализация Telegram WebApp
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // Функция для получения параметров из URL
+        function getUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const params = {};
+            for (const [key, value] of urlParams) {
+                params[key] = value;
+            }
+            return params;
+        }
+        
+        // Функция для получения startapp из разных источников
+        function getStartAppValue() {
+            let startappValue = null;
+            let source = '';
+            
+            // 1. Проверяем URL параметры
+            const urlParams = getUrlParams();
+            if (urlParams.startapp) {
+                startappValue = urlParams.startapp;
+                source = 'URL параметр';
+            }
+            
+            // 2. Проверяем Telegram WebApp initData
+            if (tg.initData) {
+                const initDataParams = new URLSearchParams(tg.initData);
+                if (initDataParams.get('start_param')) {
+                    startappValue = initDataParams.get('start_param');
+                    source = 'Telegram initData start_param';
+                }
+            }
+            
+            // 3. Проверяем hash в URL (для случаев с #)
+            if (window.location.hash) {
+                const hash = window.location.hash.substring(1);
+                const hashParams = new URLSearchParams(hash);
+                if (hashParams.get('startapp')) {
+                    startappValue = hashParams.get('startapp');
+                    source = 'URL hash параметр';
+                }
+            }
+            
+            return { value: startappValue, source: source };
+        }
+        
+        // Обновляем отображение
+        function updateDisplay() {
+            const result = getStartAppValue();
+            const valueElement = document.getElementById('startapp-value');
+            const debugElement = document.getElementById('debug-content');
+            
+            if (result.value) {
+                valueElement.textContent = result.value;
+                valueElement.style.background = 'rgba(46, 204, 113, 0.3)';
+            } else {
+                valueElement.textContent = 'Параметр startapp не найден';
+                valueElement.style.background = 'rgba(231, 76, 60, 0.3)';
+            }
+            
+            // Debug информация
+            const debugInfo = {
+                'StartApp значение': result.value || 'не найдено',
+                'Источник': result.source || 'не определен',
+                'URL': window.location.href,
+                'URL параметры': JSON.stringify(getUrlParams(), null, 2),
+                'Telegram initData': tg.initData || 'недоступно',
+                'User Agent': navigator.userAgent,
+                'Время загрузки': new Date().toLocaleString()
+            };
+            
+            let debugText = '';
+            for (const [key, value] of Object.entries(debugInfo)) {
+                debugText += `${key}: ${value}\n`;
+            }
+            debugElement.textContent = debugText;
+        }
+        
+        // Функция копирования в буфер обмена
+        function copyToClipboard() {
+            const result = getStartAppValue();
+            if (result.value) {
+                navigator.clipboard.writeText(result.value).then(() => {
+                    tg.showAlert('Значение скопировано в буфер обмена!');
+                }).catch(() => {
+                    tg.showAlert('Ошибка копирования');
+                });
+            } else {
+                tg.showAlert('Нет значения для копирования');
+            }
+        }
+        
+        // Функция переключения debug панели
+        function toggleDebug() {
+            const debugPanel = document.getElementById('debug-info');
+            if (debugPanel.style.display === 'none') {
+                debugPanel.style.display = 'block';
+            } else {
+                debugPanel.style.display = 'none';
+            }
+        }
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDisplay();
+            
+            // Обновляем каждые 2 секунды (на случай изменений)
+            setInterval(updateDisplay, 2000);
+        });
+        
+        // Обработка событий Telegram WebApp
+        tg.ready();
+        
+        // Если WebApp был закрыт/открыт
+        tg.onEvent('viewportChanged', function() {
+            updateDisplay();
+        });
+    </script>
 </body>
 </html>
