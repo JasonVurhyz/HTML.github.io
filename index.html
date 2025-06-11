@@ -19,27 +19,13 @@
   <iframe id="viewer" src="about:blank"></iframe>
 
   <script>
-    // Получаем параметр start из URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const startParam = urlParams.get('start');
+    const params = new URLSearchParams(window.location.search);
+    const url = params.get('url');
 
-    if (startParam) {
-      try {
-        // Декодируем base64
-        const decoded = atob(startParam);
-        // decoded должен быть строкой вида url=...
-        const params = new URLSearchParams(decoded);
-        const url = params.get('url');
-        if (url) {
-          document.getElementById('viewer').src = url;
-        } else {
-          document.body.innerHTML = "<h1>❌ Параметр url не найден в start</h1>";
-        }
-      } catch (e) {
-        document.body.innerHTML = "<h1>❌ Ошибка декодирования параметра start</h1>";
-      }
+    if (url) {
+      document.getElementById('viewer').src = url;
     } else {
-      document.body.innerHTML = "<h1>❌ Параметр start не передан</h1>";
+      document.body.innerHTML = "<h1>❌ Параметр url не передан</h1>";
     }
   </script>
 </body>
